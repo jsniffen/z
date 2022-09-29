@@ -63,6 +63,16 @@ func new() {
 		abort("Error editing file")
 	}
 
+	tags := make([]string, 0)
+
+	for _, word := range strings.Fields(data) {
+		if strings.HasPrefix(word, "#") {
+			tags = append(tags, word)
+		}
+	}
+
+	fmt.Println("parsed tags", tags)
+
 	fmt.Println(string(data))
 }
 
