@@ -1,42 +1,33 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
 )
 
-const folder = "z"
+const (
+	LinkFile = ".links"
+	TagFile  = ".tags"
+)
 
 func main() {
-	parse()
-}
-
-func createSnippet(s string) {
-	titleEnd := strings.Index(s, ":")
-	if titleEnd == -1 {
-		abort("Title required")
-	}
-	title := s[:titleEnd]
-
-	links := make([]string, 0)
-	for _, sub := range strings.Split(s, "[[") {
-		end := strings.Index(sub, "]]")
-		if end != -1 {
-			links = append(links, sub[:end])
-		}
+	if len(os.Args) < 2 {
+		help()
 	}
 
-	fmt.Println("parsed title", title)
-	fmt.Println("parsed links", links)
-
-	err := os.WriteFile(title, []byte(s[titleEnd+1:]), 0777)
-	if err != nil {
-		fmt.Println("Error creating snippet", err)
-		os.Exit(1)
+	arg := strings.ReplaceAll(os.Args[1], "-", "")
+	if arg == "n" || arg == "new" {
+		new()
+	} else if arg == "s" || arg == "search" {
+		search()
+	} else {
+		help()
 	}
-	os.Exit(0)
 }
 
 func help() {
@@ -49,6 +40,59 @@ func abort(s string) {
 	os.Exit(1)
 }
 
+func writeTags(title string, tags []string) {
+	f, err := os.OpenFile(TagFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	var b bytes.Buffer
+	for _, tag := range tags {
+		b.WriteString(fmt.Sprintf("%s=%s\n", title, tag))
+	}
+
+	_, err = f.Write(b.Bytes())
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func writeLinks(title string, links []string) {
+}
+
+func createFileIfNotExist(fn string) error {
+	_, err := os.Stat(fn)
+	if errors.Is(err, os.ErrNotExist) {
+		f, err := os.Create(fn)
+		if err != nil {
+			return err
+		}
+		f.Close()
+	}
+	return nil
+}
+
+func parseFileContent(fc string) ([]string, []string) {
+	tags := make([]string, 0)
+	links := make([]string, 0)
+
+	for _, sub := range strings.Split(fc, "[[") {
+		end := strings.Index(sub, "]]")
+		if end != -1 {
+			links = append(links, sub[:end])
+		}
+	}
+
+	for _, word := range strings.Fields(fc) {
+		if strings.HasPrefix(word, "#") {
+			tags = append(tags, word[1:])
+		}
+	}
+
+	return tags, links
+}
+
 func new() {
 	args := os.Args[2:]
 
@@ -58,22 +102,28 @@ func new() {
 	}
 
 	title := strings.Join(args, " ")
-	data, err := edit(title)
+	err := createFileIfNotExist(title)
+	if err != nil {
+		abort("error creating file")
+	}
+
+	fc, err := edit(title)
 	if err != nil {
 		abort("Error editing file")
 	}
 
-	tags := make([]string, 0)
+	tags, links := parseFileContent(fc)
 
-	for _, word := range strings.Fields(data) {
-		if strings.HasPrefix(word, "#") {
-			tags = append(tags, word)
-		}
+	for _, link := range links {
+		createFileIfNotExist(link)
 	}
 
-	fmt.Println("parsed tags", tags)
+	writeLinks(title, links)
+	writeTags(title, tags)
 
-	fmt.Println(string(data))
+	fmt.Println("parsed tags:", strings.Join(tags, ", "))
+	fmt.Println("parsed links:", strings.Join(links, ", "))
+	fmt.Println(string(fc))
 }
 
 func search() {
@@ -96,19 +146,4 @@ func edit(title string) (string, error) {
 	}
 
 	return string(b), nil
-}
-
-func parse() {
-	if len(os.Args) < 2 {
-		help()
-	}
-
-	arg := strings.ReplaceAll(os.Args[1], "-", "")
-	if arg == "n" || arg == "new" {
-		new()
-	} else if arg == "s" || arg == "search" {
-		search()
-	} else {
-		help()
-	}
 }
