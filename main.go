@@ -3,19 +3,14 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
-	"time"
 )
+
+const folder = "z"
 
 func main() {
 	parse()
-}
-
-func generateFilename() string {
-	t := time.Now()
-	return fmt.Sprintf("%d%d%d-%d%d%d",
-		t.Year(), t.Month(), t.Day(),
-		t.Hour(), t.Minute(), t.Second())
 }
 
 func createSnippet(s string) {
@@ -32,7 +27,6 @@ func createSnippet(s string) {
 			links = append(links, sub[:end])
 		}
 	}
-
 
 	fmt.Println("parsed title", title)
 	fmt.Println("parsed links", links)
@@ -63,12 +57,35 @@ func new() {
 		os.Exit(0)
 	}
 
-	s := strings.Join(args, " ")
-	createSnippet(s)
+	title := strings.Join(args, " ")
+	data, err := edit(title)
+	if err != nil {
+		abort("Error editing file")
+	}
+
+	fmt.Println(string(data))
 }
 
 func search() {
 	fmt.Println("search")
+}
+
+func edit(title string) (string, error) {
+	cmd := exec.Command("vim", title)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+
+	b, err := os.ReadFile(title)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
 
 func parse() {
