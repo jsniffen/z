@@ -11,9 +11,20 @@ import (
 )
 
 const (
-	LinkFile = ".links"
-	TagFile  = ".tags"
+	ZFolder = "z"
+	LinkFile = "z/.links"
+	TagFile  = "z/.tags"
 )
+
+func init() {
+	_, err := os.ReadDir(ZFolder)
+	if errors.Is(err, os.ErrNotExist) {
+		err = os.Mkdir(ZFolder, 0777)
+		if err != nil {
+			abort("Could not create root folder")
+		}
+	}
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -59,6 +70,21 @@ func writeTags(title string, tags []string) {
 }
 
 func writeLinks(title string, links []string) {
+	f, err := os.OpenFile(LinkFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	var b bytes.Buffer
+	for _, link := range links {
+		b.WriteString(fmt.Sprintf("%s=%s\n", title, link))
+	}
+
+	_, err = f.Write(b.Bytes())
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func createFileIfNotExist(fn string) error {
@@ -102,12 +128,13 @@ func new() {
 	}
 
 	title := strings.Join(args, " ")
-	err := createFileIfNotExist(title)
+	fn := fmt.Sprintf("%s/%s", ZFolder, title)
+	err := createFileIfNotExist(fn)
 	if err != nil {
 		abort("error creating file")
 	}
 
-	fc, err := edit(title)
+	fc, err := edit(fn)
 	if err != nil {
 		abort("Error editing file")
 	}
@@ -115,7 +142,7 @@ func new() {
 	tags, links := parseFileContent(fc)
 
 	for _, link := range links {
-		createFileIfNotExist(link)
+		createFileIfNotExist(fmt.Sprintf("%s/%s", ZFolder, link))
 	}
 
 	writeLinks(title, links)
@@ -127,7 +154,12 @@ func new() {
 }
 
 func search() {
-	fmt.Println("search")
+	args := os.Args[2:]
+
+	if len(args) == 0 {
+		fmt.Println("args required for searching")
+		os.Exit(0)
+	}
 }
 
 func edit(title string) (string, error) {
