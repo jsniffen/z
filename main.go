@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ZFolder = "z"
+	ZFolder  = "z"
 	LinkFile = "z/.links"
 	TagFile  = "z/.tags"
 )
@@ -36,6 +36,8 @@ func main() {
 		new()
 	} else if arg == "s" || arg == "search" {
 		search()
+	} else if arg == "d" || arg == "delete" {
+		delete()
 	} else {
 		help()
 	}
@@ -160,10 +162,44 @@ func search() {
 		fmt.Println("args required for searching")
 		os.Exit(0)
 	}
+
+	query := strings.Join(args, " ")
+
+	entries, err := os.ReadDir(ZFolder)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, entry := range entries {
+		if strings.Contains(entry.Name(), query) {
+			fn := fmt.Sprintf("%s/%s", ZFolder, entry.Name())
+			edit(fn)
+			break
+		}
+	}
+}
+
+func delete() {
+	args := os.Args[2:]
+
+	if len(args) == 0 {
+		fmt.Println("args required for searching")
+		os.Exit(0)
+	}
+
+	title := strings.Join(args, " ")
+	fn := fmt.Sprintf("%s/%s", ZFolder, title)
+	err := os.Remove(fn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Deleted entry:", title)
 }
 
 func edit(title string) (string, error) {
-	cmd := exec.Command("vim", title)
+	cmd := exec.Command("cmd", "/c", "notepad", title)
+	// cmd := exec.Command("vim", title)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 
