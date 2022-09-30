@@ -1,217 +1,179 @@
 package main
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
-	"log"
-	"os"
-	"os/exec"
 	"strings"
+
+	"github.com/nsf/termbox-go"
 )
 
-const (
-	ZFolder  = "z"
-	LinkFile = "z/.links"
-	TagFile  = "z/.tags"
-)
+type Entry struct {
+	add    bool
+	start  int
+	length int
+}
 
-func init() {
-	_, err := os.ReadDir(ZFolder)
-	if errors.Is(err, os.ErrNotExist) {
-		err = os.Mkdir(ZFolder, 0777)
-		if err != nil {
-			abort("Could not create root folder")
+type PieceTable struct {
+	originalBuffer []byte
+	addBuffer      []byte
+	table          []Entry
+}
+
+func (pt *PieceTable) String() string {
+	var sb strings.Builder
+	for _, entry := range pt.table {
+		var b []byte
+		if entry.add {
+			b = pt.addBuffer[entry.start : entry.start+entry.length]
+		} else {
+			b = pt.originalBuffer[entry.start : entry.start+entry.length]
+		}
+		sb.Write(b)
+	}
+	return sb.String()
+}
+
+func New(init string) *PieceTable {
+	pt := &PieceTable{
+		originalBuffer: []byte(init),
+		addBuffer:      make([]byte, 0),
+		table:          make([]Entry, 0),
+	}
+
+	pt.table = append(pt.table, Entry{
+		add:    false,
+		start:  0,
+		length: len(init),
+	})
+
+	return pt
+}
+
+// TODO(Julian): Fix this, it doesn't work...
+func (pt *PieceTable) Delete(pos int) {
+	currentPos := 0
+	for i, entry := range pt.table {
+		if currentPos == pos {
+			entry.start += 1
+			entry.length -= 1
+		} else if pos == currentPos+entry.length - 1{
+			entry.length -= 1
+		} else if pos > currentPos && pos < currentPos+entry.length {
+			newLength := pos - currentPos - 1
+			pt.table = append(pt.table, Entry{})
+
+			for j := len(pt.table) - 1; j-1 > i; j -= 1 {
+				pt.table[j] = pt.table[j-1]
+			}
+
+			pt.table[i+1] = Entry{
+				add:    entry.add,
+				start:  entry.start + newLength,
+				length: entry.length - newLength,
+			}
+
+			pt.table[i].length = newLength
+			return
 		}
 	}
 }
+
+func (pt *PieceTable) Insert(s string, pos int) {
+	newEntry := Entry{
+		add:    true,
+		start:  len(pt.addBuffer),
+		length: len(s),
+	}
+
+	pt.addBuffer = append(pt.addBuffer, []byte(s)...)
+
+	currentPos := 0
+	for i, entry := range pt.table {
+		if currentPos == pos {
+			pt.table = append(pt.table[:i+1], pt.table[i:]...)
+			pt.table[i] = newEntry
+			return
+		} else if pos > currentPos && pos < currentPos+entry.length {
+			newLength := pos - currentPos
+			pt.table = append(pt.table, Entry{}, Entry{})
+
+			for j := len(pt.table) - 1; j-2 > i; j -= 1 {
+				pt.table[j] = pt.table[j-2]
+			}
+
+			pt.table[i+1] = newEntry
+			pt.table[i+2] = Entry{
+				add:    entry.add,
+				start:  entry.start + newLength,
+				length: entry.length - newLength,
+			}
+
+			pt.table[i].length = newLength
+			return
+		}
+
+		currentPos += entry.length
+	}
+}
+
+type Buffer struct {
+	pt *PieceTable
+	cursor int
+}
+
+func NewBuffer() *Buffer {
+	return &Buffer{
+		pt: New(""),
+		cursor: 0,
+	}
+}
+
+func (b *Buffer) Insert(s string) {
+	b.pt.Insert(s, b.cursor)
+	b.cursor += 1
+}
+
+func (b *Buffer) Delete() {
+	b.pt.Delete(b.cursor)
+	b.cursor -= 1
+}
+
+func (b *Buffer) Render() {
+	termbox.SetCursor(b.cursor, 0)
+	x, y := 0, 0
+	for _, c := range b.pt.String() {
+		termbox.SetCell(x, y, c, termbox.ColorRed, termbox.ColorDefault)
+		x += 1
+	}
+}
+
 
 func main() {
-	if len(os.Args) < 2 {
-		help()
+	if err := termbox.Init(); err != nil {
+		panic(err)
 	}
+	defer termbox.Close()
 
-	arg := strings.ReplaceAll(os.Args[1], "-", "")
-	if arg == "n" || arg == "new" {
-		new()
-	} else if arg == "s" || arg == "search" {
-		search()
-	} else if arg == "d" || arg == "delete" {
-		delete()
-	} else {
-		help()
-	}
-}
+	termbox.SetInputMode(termbox.InputMouse)
 
-func help() {
-	fmt.Println("help")
-	os.Exit(0)
-}
-
-func abort(s string) {
-	fmt.Println(s)
-	os.Exit(1)
-}
-
-func writeTags(title string, tags []string) {
-	f, err := os.OpenFile(TagFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	var b bytes.Buffer
-	for _, tag := range tags {
-		b.WriteString(fmt.Sprintf("%s=%s\n", title, tag))
-	}
-
-	_, err = f.Write(b.Bytes())
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func writeLinks(title string, links []string) {
-	f, err := os.OpenFile(LinkFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	var b bytes.Buffer
-	for _, link := range links {
-		b.WriteString(fmt.Sprintf("%s=%s\n", title, link))
-	}
-
-	_, err = f.Write(b.Bytes())
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func createFileIfNotExist(fn string) error {
-	_, err := os.Stat(fn)
-	if errors.Is(err, os.ErrNotExist) {
-		f, err := os.Create(fn)
-		if err != nil {
-			return err
-		}
-		f.Close()
-	}
-	return nil
-}
-
-func parseFileContent(fc string) ([]string, []string) {
-	tags := make([]string, 0)
-	links := make([]string, 0)
-
-	for _, sub := range strings.Split(fc, "[[") {
-		end := strings.Index(sub, "]]")
-		if end != -1 {
-			links = append(links, sub[:end])
-		}
-	}
-
-	for _, word := range strings.Fields(fc) {
-		if strings.HasPrefix(word, "#") {
-			tags = append(tags, word[1:])
-		}
-	}
-
-	return tags, links
-}
-
-func new() {
-	args := os.Args[2:]
-
-	if len(args) == 0 {
-		fmt.Println("args required for new snippet")
-		os.Exit(0)
-	}
-
-	title := strings.Join(args, " ")
-	fn := fmt.Sprintf("%s/%s", ZFolder, title)
-	err := createFileIfNotExist(fn)
-	if err != nil {
-		abort("error creating file")
-	}
-
-	fc, err := edit(fn)
-	if err != nil {
-		abort("Error editing file")
-	}
-
-	tags, links := parseFileContent(fc)
-
-	for _, link := range links {
-		createFileIfNotExist(fmt.Sprintf("%s/%s", ZFolder, link))
-	}
-
-	writeLinks(title, links)
-	writeTags(title, tags)
-
-	fmt.Println("parsed tags:", strings.Join(tags, ", "))
-	fmt.Println("parsed links:", strings.Join(links, ", "))
-	fmt.Println(string(fc))
-}
-
-func search() {
-	args := os.Args[2:]
-
-	if len(args) == 0 {
-		fmt.Println("args required for searching")
-		os.Exit(0)
-	}
-
-	query := strings.Join(args, " ")
-
-	entries, err := os.ReadDir(ZFolder)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, entry := range entries {
-		if strings.Contains(entry.Name(), query) {
-			fn := fmt.Sprintf("%s/%s", ZFolder, entry.Name())
-			edit(fn)
+	buffer := NewBuffer()
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			if ev.Key == termbox.KeyBackspace {
+				buffer.Delete()
+			} else {
+				buffer.Insert(string(ev.Ch))
+			}
 			break
+			
+		case termbox.EventMouse:
+			if ev.Key == termbox.MouseLeft {
+				return
+			}
 		}
+
+		buffer.Render()
+
+		termbox.Flush()
 	}
-}
-
-func delete() {
-	args := os.Args[2:]
-
-	if len(args) == 0 {
-		fmt.Println("args required for searching")
-		os.Exit(0)
-	}
-
-	title := strings.Join(args, " ")
-	fn := fmt.Sprintf("%s/%s", ZFolder, title)
-	err := os.Remove(fn)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Deleted entry:", title)
-}
-
-func edit(title string) (string, error) {
-	cmd := exec.Command("cmd", "/c", "notepad", title)
-	// cmd := exec.Command("vim", title)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-
-	err := cmd.Run()
-	if err != nil {
-		return "", err
-	}
-
-	b, err := os.ReadFile(title)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
 }
