@@ -14,6 +14,18 @@ type PieceTable struct {
 	table          []Entry
 }
 
+func shiftRight(entries []Entry, start, n int) []Entry {
+	for i := 0; i < n; i++ {
+		entries = append(entries, Entry{})
+	}
+
+	for i := len(entries) - 1; i >= start+n; i-- {
+		entries[i] = entries[i-n]
+	}
+
+	return entries
+}
+
 func (pt *PieceTable) String() string {
 	var sb strings.Builder
 	for _, entry := range pt.table {
@@ -44,6 +56,49 @@ func NewPieceTable(init string) *PieceTable {
 	return pt
 }
 
+func (pt *PieceTable) Insert(b byte, pos int) {
+	newEntry := Entry{
+		add:    true,
+		start:  len(pt.addBuffer),
+		length: 1,
+	}
+
+	pt.addBuffer = append(pt.addBuffer, b)
+
+	start := 0
+	for i, entry := range pt.table {
+		end := start + entry.length
+
+		if pos == start {
+			pt.table = shiftRight(pt.table, i, 1)
+			pt.table[i] = newEntry
+		} else if pos == end-1 {
+			pt.table = shiftRight(pt.table, i, 1)
+			pt.table[i+1] = newEntry
+		} else if pos > start && pos < end {
+			pt.table = shiftRight(pt.table, i, 2)
+
+			prev := Entry{
+				add:    entry.add,
+				start:  entry.start,
+				length: pos - start,
+			}
+
+			next := Entry{
+				add:    entry.add,
+				start:  prev.start + prev.length,
+				length: entry.length - prev.length,
+			}
+
+			pt.table[i] = prev
+			pt.table[i+1] = newEntry
+			pt.table[i+2] = next
+		}
+
+		start += entry.length
+	}
+}
+
 func (pt *PieceTable) Delete(pos int) {
 	currentPos := 0
 	for i, entry := range pt.table {
@@ -68,57 +123,19 @@ func (pt *PieceTable) Delete(pos int) {
 			}
 
 			prev := Entry{
-				add: entry.add,
-				start: entry.start,
+				add:    entry.add,
+				start:  entry.start,
 				length: pos - currentPos,
 			}
 
 			next := Entry{
-				add: entry.add,
-				start: prev.start+prev.length+1,
-				length: entry.length-prev.length-1,
+				add:    entry.add,
+				start:  prev.start + prev.length + 1,
+				length: entry.length - prev.length - 1,
 			}
 
 			pt.table[i], pt.table[i+1] = prev, next
 
-			return
-		}
-
-		currentPos += entry.length
-	}
-}
-
-func (pt *PieceTable) Insert(s string, pos int) {
-	newEntry := Entry{
-		add:    true,
-		start:  len(pt.addBuffer),
-		length: len(s),
-	}
-
-	pt.addBuffer = append(pt.addBuffer, []byte(s)...)
-
-	currentPos := 0
-	for i, entry := range pt.table {
-		if currentPos == pos {
-			pt.table = append(pt.table[:i+1], pt.table[i:]...)
-			pt.table[i] = newEntry
-			return
-		} else if pos > currentPos && pos < currentPos+entry.length {
-			newLength := pos - currentPos
-			pt.table = append(pt.table, Entry{}, Entry{})
-
-			for j := len(pt.table) - 1; j-2 > i; j -= 1 {
-				pt.table[j] = pt.table[j-2]
-			}
-
-			pt.table[i+1] = newEntry
-			pt.table[i+2] = Entry{
-				add:    entry.add,
-				start:  entry.start + newLength,
-				length: entry.length - newLength,
-			}
-
-			pt.table[i].length = newLength
 			return
 		}
 
