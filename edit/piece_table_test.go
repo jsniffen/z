@@ -6,29 +6,29 @@ import (
 
 func TestInsert(t *testing.T) {
 	pt := NewPieceTable("test")
-	tests := []struct{
-		i int
-		b byte
+	tests := []struct {
+		i    int
+		b    byte
 		want string
 	}{
 		{0, 'a', "atest"},
 		{4, 'b', "atestb"},
 		{3, 'c', "atecstb"},
 	}
-  for _, test := range tests {
-    pt.Insert(test.b, test.i)
-    want, got := test.want, pt.String()
-    if want != got {
-      t.Errorf("want: %s, got: %s", want, got)
-    }
-  }
+	for _, test := range tests {
+		pt.Insert(test.b, test.i)
+		want, got := test.want, pt.String()
+		if want != got {
+			t.Errorf("want: %s, got: %s", want, got)
+		}
+	}
 }
 
 func TestDelete(t *testing.T) {
 	pt := NewPieceTable("testing")
 
-	tests := []struct{
-		i int
+	tests := []struct {
+		i    int
 		want string
 	}{
 		{1, "tsting"},

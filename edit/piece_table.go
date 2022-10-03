@@ -9,19 +9,19 @@ type Entry struct {
 }
 
 func split(e Entry, i int) (Entry, Entry) {
-			prev := Entry{
-				add:    e.add,
-				start:  e.start,
-				length: i,
-			}
+	prev := Entry{
+		add:    e.add,
+		start:  e.start,
+		length: i,
+	}
 
-			next := Entry{
-				add:    e.add,
-				start:  e.start + i,
-				length: e.length - i,
-			}
+	next := Entry{
+		add:    e.add,
+		start:  e.start + i,
+		length: e.length - i,
+	}
 
-      return prev, next
+	return prev, next
 }
 
 func shiftRight(entries []Entry, start, n int) []Entry {
@@ -41,7 +41,6 @@ type PieceTable struct {
 	addBuffer      []byte
 	table          []Entry
 }
-
 
 func (pt *PieceTable) String() string {
 	var sb strings.Builder
@@ -108,29 +107,29 @@ func (pt *PieceTable) Delete(pos int) {
 		end := start + entry.length
 
 		if pos == start {
-      pt.table[i].start += 1
-      pt.table[i].length -= 1
-      if pt.table[i].length == 0 {
-        pt.table = append(pt.table[:i], pt.table[i+1:]...)
-      }
-      break
+			pt.table[i].start += 1
+			pt.table[i].length -= 1
+			if pt.table[i].length == 0 {
+				pt.table = append(pt.table[:i], pt.table[i+1:]...)
+			}
+			break
 		} else if pos == end-1 {
-      pt.table[i].length -= 1
-      if pt.table[i].length == 0 {
-        pt.table = append(pt.table[:i], pt.table[i+1:]...)
-      }
-      break
+			pt.table[i].length -= 1
+			if pt.table[i].length == 0 {
+				pt.table = append(pt.table[:i], pt.table[i+1:]...)
+			}
+			break
 		} else if pos > start && pos < end {
 			pt.table = shiftRight(pt.table, i, 1)
-      pt.table[i], pt.table[i+1] = split(entry, pos-start)
-      pt.table[i+1].start += 1
-      pt.table[i+1].length -= 1
-      break
+			pt.table[i], pt.table[i+1] = split(entry, pos-start)
+			pt.table[i+1].start += 1
+			pt.table[i+1].length -= 1
+			break
 		}
 
-    if pt.table[i].length == 0 {
-      pt.table = append(pt.table[:i], pt.table[i+1:]...)
-    }
+		if pt.table[i].length == 0 {
+			pt.table = append(pt.table[:i], pt.table[i+1:]...)
+		}
 
 		start += entry.length
 	}

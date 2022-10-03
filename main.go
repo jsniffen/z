@@ -1,18 +1,20 @@
-package main 
+package main
 
 import (
-	"z/edit"
 	"github.com/nsf/termbox-go"
+	"log"
+	"os"
+	"z/edit"
 )
 
 type Buffer struct {
-	pt *edit.PieceTable
+	pt     *edit.PieceTable
 	cursor int
 }
 
 func NewBuffer() *Buffer {
 	return &Buffer{
-		pt: edit.NewPieceTable("hello"),
+		pt:     edit.NewPieceTable("hello"),
 		cursor: 0,
 	}
 }
@@ -28,9 +30,9 @@ func (b *Buffer) Delete() {
 }
 
 func (b *Buffer) Render() {
-  if b.cursor >= 0 {
-    termbox.SetCursor(b.cursor, 0)
-  }
+	if b.cursor >= 0 {
+		termbox.SetCursor(b.cursor, 0)
+	}
 	x, y := 0, 0
 	for _, c := range b.pt.String() {
 		termbox.SetCell(x, y, c, termbox.ColorRed, termbox.ColorDefault)
@@ -38,34 +40,30 @@ func (b *Buffer) Render() {
 	}
 }
 
-
 func main() {
+	f, _ := os.OpenFile("log", os.O_RDWR|os.O_CREATE, 0777)
+	defer f.Close()
+	log.SetOutput(f)
+
 	if err := termbox.Init(); err != nil {
 		panic(err)
 	}
 	defer termbox.Close()
 
-	termbox.SetInputMode(termbox.InputMouse)
-
 	buffer := NewBuffer()
 	for {
+		buffer.Render()
+		termbox.Flush()
+
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
-			if ev.Key == termbox.KeyBackspace {
+			if ev.Key == termbox.KeyBackspace || ev.Key == termbox.KeyBackspace2 {
 				buffer.Delete()
+			} else if ev.Key == termbox.KeyCtrlQ {
+				return
 			} else {
 				buffer.Insert(byte(ev.Ch))
 			}
-			break
-			
-		case termbox.EventMouse:
-			if ev.Key == termbox.MouseLeft {
-				return
-			}
 		}
-
-		buffer.Render()
-
-		termbox.Flush()
 	}
 }
