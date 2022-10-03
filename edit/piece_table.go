@@ -8,10 +8,20 @@ type Entry struct {
 	length int
 }
 
-type PieceTable struct {
-	originalBuffer []byte
-	addBuffer      []byte
-	table          []Entry
+func split(e Entry, i int) (Entry, Entry) {
+			prev := Entry{
+				add:    e.add,
+				start:  e.start,
+				length: i,
+			}
+
+			next := Entry{
+				add:    e.add,
+				start:  e.start + i,
+				length: e.length - i,
+			}
+
+      return prev, next
 }
 
 func shiftRight(entries []Entry, start, n int) []Entry {
@@ -25,6 +35,13 @@ func shiftRight(entries []Entry, start, n int) []Entry {
 
 	return entries
 }
+
+type PieceTable struct {
+	originalBuffer []byte
+	addBuffer      []byte
+	table          []Entry
+}
+
 
 func (pt *PieceTable) String() string {
 	var sb strings.Builder
@@ -77,22 +94,8 @@ func (pt *PieceTable) Insert(b byte, pos int) {
 			pt.table[i+1] = newEntry
 		} else if pos > start && pos < end {
 			pt.table = shiftRight(pt.table, i, 2)
-
-			prev := Entry{
-				add:    entry.add,
-				start:  entry.start,
-				length: pos - start,
-			}
-
-			next := Entry{
-				add:    entry.add,
-				start:  prev.start + prev.length,
-				length: entry.length - prev.length,
-			}
-
-			pt.table[i] = prev
+			pt.table[i], pt.table[i+2] = split(entry, pos-start)
 			pt.table[i+1] = newEntry
-			pt.table[i+2] = next
 		}
 
 		start += entry.length
@@ -100,45 +103,35 @@ func (pt *PieceTable) Insert(b byte, pos int) {
 }
 
 func (pt *PieceTable) Delete(pos int) {
-	currentPos := 0
+	start := 0
 	for i, entry := range pt.table {
-		if currentPos == pos {
-			pt.table[i].length -= 1
-			pt.table[i].start += 1
-			if pt.table[i].length == 0 {
-				pt.table = append(pt.table[:i], pt.table[i+1:]...)
-			}
-			return
-		} else if pos == currentPos+entry.length-1 {
-			pt.table[i].length -= 1
-			if pt.table[i].length == 0 {
-				pt.table = append(pt.table[:i], pt.table[i+1:]...)
-			}
-			return
-		} else if pos > currentPos && pos < currentPos+entry.length {
-			pt.table = append(pt.table, Entry{})
+		end := start + entry.length
 
-			for j := len(pt.table) - 1; j > i+1; j-- {
-				pt.table[j] = pt.table[j-1]
-			}
-
-			prev := Entry{
-				add:    entry.add,
-				start:  entry.start,
-				length: pos - currentPos,
-			}
-
-			next := Entry{
-				add:    entry.add,
-				start:  prev.start + prev.length + 1,
-				length: entry.length - prev.length - 1,
-			}
-
-			pt.table[i], pt.table[i+1] = prev, next
-
-			return
+		if pos == start {
+      pt.table[i].start += 1
+      pt.table[i].length -= 1
+      if pt.table[i].length == 0 {
+        pt.table = append(pt.table[:i], pt.table[i+1:]...)
+      }
+      break
+		} else if pos == end-1 {
+      pt.table[i].length -= 1
+      if pt.table[i].length == 0 {
+        pt.table = append(pt.table[:i], pt.table[i+1:]...)
+      }
+      break
+		} else if pos > start && pos < end {
+			pt.table = shiftRight(pt.table, i, 1)
+      pt.table[i], pt.table[i+1] = split(entry, pos-start)
+      pt.table[i+1].start += 1
+      pt.table[i+1].length -= 1
+      break
 		}
 
-		currentPos += entry.length
+    if pt.table[i].length == 0 {
+      pt.table = append(pt.table[:i], pt.table[i+1:]...)
+    }
+
+		start += entry.length
 	}
 }

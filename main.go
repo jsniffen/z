@@ -12,13 +12,13 @@ type Buffer struct {
 
 func NewBuffer() *Buffer {
 	return &Buffer{
-		pt: edit.NewPieceTable(""),
+		pt: edit.NewPieceTable("hello"),
 		cursor: 0,
 	}
 }
 
-func (b *Buffer) Insert(s string) {
-	b.pt.Insert(s, b.cursor)
+func (b *Buffer) Insert(char byte) {
+	b.pt.Insert(char, b.cursor)
 	b.cursor += 1
 }
 
@@ -28,7 +28,9 @@ func (b *Buffer) Delete() {
 }
 
 func (b *Buffer) Render() {
-	termbox.SetCursor(b.cursor, 0)
+  if b.cursor >= 0 {
+    termbox.SetCursor(b.cursor, 0)
+  }
 	x, y := 0, 0
 	for _, c := range b.pt.String() {
 		termbox.SetCell(x, y, c, termbox.ColorRed, termbox.ColorDefault)
@@ -52,7 +54,7 @@ func main() {
 			if ev.Key == termbox.KeyBackspace {
 				buffer.Delete()
 			} else {
-				buffer.Insert(string(ev.Ch))
+				buffer.Insert(byte(ev.Ch))
 			}
 			break
 			
