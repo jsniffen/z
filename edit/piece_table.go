@@ -166,8 +166,13 @@ func (pt *PieceTable) MoveCursorRight() {
 	}
 }
 
-func (pt *PieceTable) Render() {
-	x, y := 0, 0
+func (pt *PieceTable) Render(x0, y0, w, h int, fg, bg termbox.Attribute) {
+  for y := 0; y < y0+h; y += 1 {
+    for x := 0; x < x0+w; x += 1 {
+      termbox.SetCell(x, y, ' ', fg, bg)
+    }
+  }
+  x, y := x0, y0
 	for i, c := range pt.String() {
 		if i == pt.cursor {
 			termbox.SetCursor(x, y)
@@ -178,7 +183,9 @@ func (pt *PieceTable) Render() {
 		} else if c == ' ' {
 			x += 1
 		} else {
-			termbox.SetCell(x, y, c, termbox.ColorRed, termbox.ColorDefault)
+      if x >= x0 && x < x0+w && y >= y0 && y < y0+h {
+        termbox.SetCell(x, y, c, fg, bg)
+      }
 			x += 1
 		}
 	}

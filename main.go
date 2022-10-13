@@ -19,7 +19,7 @@ func main() {
 
 	pt := edit.NewPieceTable("hello, world\njulian")
 	for {
-		pt.Render()
+    pt.Render(0, 0, 10, 10, termbox.ColorRed, termbox.ColorGreen)
 		termbox.Flush()
 
 		switch ev := termbox.PollEvent(); ev.Type {
