@@ -51,3 +51,32 @@ func TestDelete(t *testing.T) {
 		}
 	}
 }
+
+func TestMoveCursor(t *testing.T) {
+	pt := NewPieceTable("test")
+	for i := 0; i < 4; i += 1 {
+		want, got := i, pt.cursor
+		if want != got {
+			t.Errorf("want: %d, got: %d", want, got)
+		}
+		pt.MoveCursorRight()
+	}
+
+	pt.MoveCursorRight()
+	if pt.cursor != 3 {
+		t.Errorf("want: 3, got: %d", pt.cursor)
+	}
+
+	for i := 3; i >= 0; i -= 1 {
+		want, got := i, pt.cursor
+		if want != got {
+			t.Errorf("want: %d, got: %d", want, got)
+		}
+		pt.MoveCursorLeft()
+	}
+
+	pt.MoveCursorLeft()
+	if pt.cursor != 0 {
+		t.Errorf("want: 0, got: %d", pt.cursor)
+	}
+}
