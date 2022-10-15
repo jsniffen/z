@@ -1,8 +1,10 @@
 package edit
 
 import (
-	"github.com/nsf/termbox-go"
+	"fmt"
 	"strings"
+
+	"github.com/nsf/termbox-go"
 )
 
 type Entry struct {
@@ -45,6 +47,8 @@ type PieceTable struct {
 	table          []Entry
 	cursor         int
 	length         int
+	cx             int
+	cy             int
 }
 
 func (pt *PieceTable) String() string {
@@ -68,6 +72,8 @@ func NewPieceTable(init string) *PieceTable {
 		table:          make([]Entry, 0),
 		cursor:         0,
 		length:         len(init),
+		cx:             0,
+		cy:             0,
 	}
 
 	pt.table = append(pt.table, Entry{
@@ -149,44 +155,84 @@ func (pt *PieceTable) Delete() {
 }
 
 func (pt *PieceTable) MoveCursorUp() {
+	if pt.cy > 0 {
+		pt.cy -= 1
+	}
 }
 
 func (pt *PieceTable) MoveCursorDown() {
+	pt.cy += 1
 }
 
 func (pt *PieceTable) MoveCursorLeft() {
-	if pt.cursor > 0 {
-		pt.cursor -= 1
+	if pt.cx > 0 {
+		pt.cx -= 1
 	}
 }
 
 func (pt *PieceTable) MoveCursorRight() {
-	if pt.cursor < pt.length-1 {
-		pt.cursor += 1
-	}
+	pt.cx += 1
 }
 
 func (pt *PieceTable) Render(x0, y0, w, h int, fg, bg termbox.Attribute) {
-  for y := 0; y < y0+h; y += 1 {
-    for x := 0; x < x0+w; x += 1 {
-      termbox.SetCell(x, y, ' ', fg, bg)
-    }
-  }
-  x, y := x0, y0
-	for i, c := range pt.String() {
-		if i == pt.cursor {
-			termbox.SetCursor(x, y)
-		}
-		if c == '\n' {
-			y += 1
-			x = 0
-		} else if c == ' ' {
-			x += 1
-		} else {
-      if x >= x0 && x < x0+w && y >= y0 && y < y0+h {
-        termbox.SetCell(x, y, c, fg, bg)
-      }
-			x += 1
+	for y := y0; y < y0+h; y += 1 {
+		for x := x0; x < x0+w; x += 1 {
+			termbox.SetCell(x, y, ' ', fg, bg)
 		}
 	}
+
+	shiftX := max(0, pt.cx - w + 1)
+	shiftY := max(0, pt.cy - h + 1)
+
+	debug(fmt.Sprintf("%d, %d, %d, %d", shiftX, pt.cx, x0, w))
+
+	lines := strings.Split(pt.String(), "\n")
+	if len(lines) > shiftY {
+		for y, line := range lines[shiftY:] {
+			if len(line) > shiftX {
+				for x, c := range line[shiftX:] {
+					if x < w {
+						termbox.SetCell(x+x0, y+y0, c, fg, bg)
+					}
+				}
+			}
+		}
+	}
+
+	cx, cy := min(pt.cx, w-1), min(pt.cy, h-1)
+	termbox.SetCursor(x0+cx, y0+cy)
+}
+
+var debugLine = 0
+
+func debug(msg ...string) {
+	for i := 0; i < 100; i += 1 {
+		termbox.SetCell(i, 20+debugLine, ' ', termbox.ColorGreen, termbox.ColorBlack)
+	}
+	x := 0
+	for _, s := range msg {
+		for _, c := range s {
+			termbox.SetCell(x, 20+debugLine, c, termbox.ColorGreen, termbox.ColorBlack)
+			x += 1
+		}
+		x += 1
+	}
+	debugLine += 1
+	if debugLine > 30 {
+		debugLine = 0
+	}
+}
+
+func min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func max(x, y int) int {
+	if x > y {
+		return x
+	}
+	return y
 }
