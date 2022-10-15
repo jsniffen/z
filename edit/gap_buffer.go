@@ -1,11 +1,11 @@
 package edit
 
-import "fmt"
-
 type GapBuffer struct {
 	buffer []rune
-	size int
-	index int
+	size   int
+	index  int
+	cx     int
+	cy     int
 }
 
 func NewGapBuffer(s string) *GapBuffer {
@@ -16,16 +16,16 @@ func NewGapBuffer(s string) *GapBuffer {
 
 	return &GapBuffer{
 		buffer: b,
-		size: 256-len(s),
-		index: len(s),
+		size:   256 - len(s),
+		index:  len(s),
+		cx:     0,
+		cy:     0,
 	}
+}
+
+func (gb *GapBuffer) String() string {
+	return string(gb.buffer[:gb.index])
 }
 
 func (gb *GapBuffer) Insert(rune) {
 }
-
-func (gb *GapBuffer) Render() {
-	a := string(gb.buffer[:gb.index])
-	fmt.Println(a)
-}
-

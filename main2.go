@@ -1,9 +1,9 @@
 package main
 
 import (
-	"z/edit"
-
 	"github.com/nsf/termbox-go"
+  
+  "z/gui"
 )
 
 func main() {
@@ -12,9 +12,9 @@ func main() {
 	}
 	defer termbox.Close()
 
-	gb := edit.NewGapBuffer("hello")
+	w := gui.NewWindow()
 	for {
-		gb.Render()
+		w.Render()
 		termbox.Flush()
 
 		switch ev := termbox.PollEvent(); ev.Type {
@@ -22,7 +22,7 @@ func main() {
 			if ev.Key == termbox.KeyCtrlQ {
 				return
 			} else {
-				gb.Insert(rune(ev.Ch))
+        w.HandleEvent(ev)
 			}
 		}
 	}
