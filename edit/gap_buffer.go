@@ -27,5 +27,11 @@ func (gb *GapBuffer) String() string {
 	return string(gb.buffer[:gb.index])
 }
 
-func (gb *GapBuffer) Insert(rune) {
+func (gb *GapBuffer) Insert(r rune) {
+  gb.buffer[gb.index] = r
+  gb.index += 1
+}
+
+func (gb *GapBuffer) Delete() {
+  gb.index -= 1
 }

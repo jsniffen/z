@@ -48,6 +48,11 @@ func (w *Window) HandleEvent(e termbox.Event) {
 		if w.cx < w.w-1 {
 			w.cx += 1
 		}
+  case termbox.KeyBackspace:
+  case termbox.KeyBackspace2:
+   w.gb.Delete()
+  default:
+    w.gb.Insert(rune(e.Ch))
 	}
 }
 
