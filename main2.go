@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/nsf/termbox-go"
-
 	"z/gui"
+
+	"github.com/nsf/termbox-go"
 )
 
 func main() {
