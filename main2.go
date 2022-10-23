@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/nsf/termbox-go"
-  
-  "z/gui"
+
+	"z/gui"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 			if ev.Key == termbox.KeyCtrlQ {
 				return
 			} else {
-        w.HandleEvent(ev)
+				w.HandleEvent(ev)
 			}
 		}
 	}

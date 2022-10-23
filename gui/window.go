@@ -48,17 +48,17 @@ func (w *Window) HandleEvent(e termbox.Event) {
 		if w.cx < w.w-1 {
 			w.cx += 1
 		}
-  case termbox.KeyBackspace:
-  case termbox.KeyBackspace2:
-   w.gb.Delete()
-  default:
-    w.gb.Insert(rune(e.Ch))
+	case termbox.KeyBackspace:
+        fallthrough
+	case termbox.KeyBackspace2:
+		w.gb.Delete()
+	default:
+		w.gb.Insert(rune(e.Ch))
 	}
 }
 
 func (w *Window) Render() {
 	lines := strings.Split(w.gb.String(), "\n")
-
 	for y := 0; y < w.h; y += 1 {
 		for x := 0; x < w.w; x += 1 {
 			c := ' '

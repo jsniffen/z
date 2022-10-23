@@ -2,10 +2,8 @@ package edit
 
 type GapBuffer struct {
 	buffer []rune
-	size   int
-	index  int
-	cx     int
-	cy     int
+	gapsize   int
+	gapstart  int
 }
 
 func NewGapBuffer(s string) *GapBuffer {
@@ -14,24 +12,36 @@ func NewGapBuffer(s string) *GapBuffer {
 		b[i] = c
 	}
 
-	return &GapBuffer{
+    return &GapBuffer{
 		buffer: b,
-		size:   256 - len(s),
-		index:  len(s),
-		cx:     0,
-		cy:     0,
+		gapsize:   256 - len(s),
+		gapstart:  len(s),
 	}
 }
 
 func (gb *GapBuffer) String() string {
-	return string(gb.buffer[:gb.index])
+    a := gb.buffer[:gb.gapstart]
+    b := gb.buffer[gb.gapstart+gb.gapsize:]
+	return string(a) + string(b)
 }
 
 func (gb *GapBuffer) Insert(r rune) {
-  gb.buffer[gb.index] = r
-  gb.index += 1
+	gb.buffer[gb.gapstart] = r
+	gb.gapstart += 1
+	gb.gapsize -= 1
 }
 
 func (gb *GapBuffer) Delete() {
-  gb.index -= 1
+	gb.gapstart -= 1
+	gb.gapsize += 1
+}
+
+func (gb *GapBuffer) Move(i int) {
+    a := gb.buffer[:gb.gapstart]
+    b := gb.buffer[gb.gapstart+gb.gapsize:]
+	buffer := make([]rune, len(gb.buffer))
+    copy(buffer, a)
+    copy(buffer[i+gb.gapsize:], b)
+    gb.buffer = buffer
+    gb.gapstart = i
 }
