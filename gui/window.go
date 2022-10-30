@@ -15,38 +15,39 @@ func debug(s string) {
 }
 
 func min(a, b int) int {
-    if a < b {
-        return a
-    }
-    return b
+	if a < b { return a
+	}
+	return b
 }
 
 type Window struct {
-	gb    *edit.GapBuffer
-	cx    int
-	cy    int
-	x0    int
-	y0    int
-	w     int
-	h     int
-	fg    termbox.Attribute
-	bg    termbox.Attribute
-	lines []string
+	gb     *edit.GapBuffer
+	active bool
+	cx     int
+	cy     int
+	x0     int
+	y0     int
+	w      int
+	h      int
+	fg     termbox.Attribute
+	bg     termbox.Attribute
+	lines  []string
 }
 
 func NewWindow(x, y, w, h int, fg, bg termbox.Attribute) *Window {
 	gb := edit.NewGapBuffer()
 	return &Window{
-		gb:    gb,
-		cx:    0,
-		cy:    0,
-		x0:    x,
-		y0:    y,
-		w:     w,
-		h:     h,
-		fg:    fg,
-		bg:    bg,
-		lines: make([]string, 1),
+		active: true,
+		gb:     gb,
+		cx:     0,
+		cy:     0,
+		x0:     x,
+		y0:     y,
+		w:      w,
+		h:      h,
+		fg:     fg,
+		bg:     bg,
+		lines:  make([]string, 1),
 	}
 }
 
@@ -61,6 +62,11 @@ func (w *Window) updateCursor() {
 	}
 	w.gb.Move(i + w.cx)
 	debug(fmt.Sprintf("moving to %d", i+w.cx))
+}
+
+func (w *Window) SetSize(width, height int) {
+	w.w = width
+	w.h = height
 }
 
 func (w *Window) HandleEvent(e termbox.Event) {
