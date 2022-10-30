@@ -21,17 +21,22 @@ type Z struct {
 }
 
 func NewZ() *Z {
-	scratch := NewWindow(0, 0, 100, 100, termbox.ColorWhite, termbox.ColorBlue)
+	if err := termbox.Init(); err != nil {
+		panic(err)
+	}
+
+	w, h := termbox.Size()
+
+	scratch := NewWindow(0, 0, 0, 0, termbox.ColorWhite, termbox.ColorBlue)
 	return &Z{
 		running: true,
 		windows: []*Window{scratch},
+		width: w,
+		height: h,
 	}
 }
 
 func (z *Z) Run() {
-	if err := termbox.Init(); err != nil {
-		panic(err)
-	}
 	defer termbox.Close()
 
 	for z.running {
