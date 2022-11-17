@@ -52,6 +52,8 @@ func (z *Z) render() {
 	}
 
     z.renderStatus()
+
+	NewModal().Render()
 	termbox.Flush()
 }
 
