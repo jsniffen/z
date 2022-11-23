@@ -53,7 +53,7 @@ func (z *Z) render() {
 
     z.renderStatus()
 
-	NewModal().Render()
+	NewModal().Render(z.width, z.height)
 	termbox.Flush()
 }
 
