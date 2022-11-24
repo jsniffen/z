@@ -28,6 +28,10 @@ func NewModal() *Modal {
 	}
 }
 
+func (m *Modal) SetSize(ms ModalSize) {
+	m.size = ms
+}
+
 func (m *Modal) Render(w, h int) {
 	var x0, x1, y0, y1 int
 	switch m.size {

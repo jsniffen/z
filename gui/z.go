@@ -16,6 +16,7 @@ type Z struct {
 	mode    Mode
 	running bool
 	windows []*Window
+	modal   *Modal
 	width   int
 	height  int
 }
@@ -31,8 +32,9 @@ func NewZ() *Z {
 	return &Z{
 		running: true,
 		windows: []*Window{scratch},
-		width: w,
-		height: h,
+		modal: NewModal(),
+		width:   w,
+		height:  h,
 	}
 }
 
@@ -51,9 +53,9 @@ func (z *Z) render() {
 		w.Render()
 	}
 
-    z.renderStatus()
+	z.renderStatus()
 
-	NewModal().Render(z.width, z.height)
+	z.modal.Render(z.width, z.height)
 	termbox.Flush()
 }
 
@@ -63,56 +65,71 @@ func (z *Z) handleEvent() {
 		z.width = e.Width
 		z.height = e.Height
 	case termbox.EventKey:
-        if z.mode == ModeInsert {
-            z.handleInsertModeEvent(e)
-        } else {
-            z.handleNormalModeEvent(e)
-        }
+		if z.mode == ModeInsert {
+			z.handleInsertModeEvent(e)
+		} else {
+			z.handleNormalModeEvent(e)
+		}
 	}
 }
 
 func (z *Z) handleNormalModeEvent(e termbox.Event) {
-    if e.Ch == 'i' {
-        z.mode = ModeInsert
-        return
-    }
+	if e.Ch == 'i' {
+		z.mode = ModeInsert
+		return
+	}
 
-    if e.Key == termbox.KeyCtrlQ {
-        z.running = false
-        return
-    }
+	if e.Key == termbox.KeyCtrlQ {
+		z.running = false
+		return
+	}
+
+	if e.Ch == 's' {
+		z.modal.SetSize(ModalSmall)
+		return
+	}
+
+	if e.Ch == 'm' {
+		z.modal.SetSize(ModalMedium)
+		return
+	}
+
+	if e.Ch == 'l' {
+		z.modal.SetSize(ModalLarge)
+		return
+	}
 }
 
 
 func (z *Z) handleInsertModeEvent(e termbox.Event) {
-    if e.Key == termbox.KeyEsc {
-        z.mode = ModeNormal
-        return
-    }
+	if e.Key == termbox.KeyEsc {
+		z.mode = ModeNormal
+		return
+	}
 
-    for _, window := range z.windows {
-        if window.active {
-            window.HandleEvent(e)
-        }
-    }
+	for _, window := range z.windows {
+		if window.active {
+			window.HandleEvent(e)
+		}
+	}
 }
 
 func (z *Z) renderStatus() {
-    var status []rune
+	var status []rune
 
-    if z.mode == ModeInsert {
-        status = []rune("INSERT")
-    } else if z.mode == ModeVisual {
-        status = []rune("VISUAL")
-    } else {
-        status = []rune("NORMAL")
-    }
+	if z.mode == ModeInsert {
+		status = []rune("INSERT")
+	} else if z.mode == ModeVisual {
+		status = []rune("VISUAL")
+	} else {
+		status = []rune("NORMAL")
+	}
 
-    for x := 0; x < z.width; x += 1 {
-        if x < len(status) {
-            termbox.SetCell(x, z.height-1, status[x], termbox.ColorBlack, termbox.ColorWhite)
-        } else {
-            termbox.SetCell(x, z.height-1, ' ', termbox.ColorBlack, termbox.ColorWhite)
-        }
-    }
+	for x := 0; x < z.width; x += 1 {
+		if x < len(status) {
+			termbox.SetCell(x, z.height-1, status[x], termbox.ColorBlack, termbox.ColorWhite)
+		} else {
+			termbox.SetCell(x, z.height-1, ' ', termbox.ColorBlack, termbox.ColorWhite)
+		}
+	}
 }
